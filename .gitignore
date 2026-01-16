@@ -73,3 +73,7 @@ htmlcov/
 # Logs
 logs/
 *.log
+
+# Claude Code temp files
+tmpclaude-*
+nul
