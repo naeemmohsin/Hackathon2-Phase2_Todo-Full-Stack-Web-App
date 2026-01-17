@@ -18,21 +18,23 @@ export default function TaskItem({
   return (
     <li className="py-4 flex items-center justify-between group">
       <div className="flex items-center gap-3 flex-1 min-w-0">
-        {/* Checkbox for toggle */}
+        {/* Checkbox for toggle - 44x44px touch target for accessibility */}
         <button
           onClick={() => onToggle?.(task.id)}
-          className={`w-5 h-5 rounded border-2 flex-shrink-0 flex items-center justify-center transition-colors ${
+          className="min-w-[44px] min-h-[44px] flex-shrink-0 flex items-center justify-center -ml-3"
+          aria-label={task.is_completed ? 'Mark as incomplete' : 'Mark as complete'}
+        >
+          <span className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
             task.is_completed
               ? 'bg-green-500 border-green-500 text-white'
               : 'border-gray-300 hover:border-primary-500'
-          }`}
-          aria-label={task.is_completed ? 'Mark as incomplete' : 'Mark as complete'}
-        >
-          {task.is_completed && (
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-            </svg>
-          )}
+          }`}>
+            {task.is_completed && (
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+              </svg>
+            )}
+          </span>
         </button>
 
         {/* Task title */}
@@ -47,12 +49,12 @@ export default function TaskItem({
         </span>
       </div>
 
-      {/* Action buttons - visible on hover */}
-      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+      {/* Action buttons - visible on hover, 44x44px touch targets */}
+      <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
         {onEdit && (
           <button
             onClick={() => onEdit(task)}
-            className="p-1 text-gray-400 hover:text-primary-600 transition-colors"
+            className="min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 hover:text-primary-600 transition-colors"
             aria-label="Edit task"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -64,7 +66,7 @@ export default function TaskItem({
         {onDelete && (
           <button
             onClick={() => onDelete(task.id)}
-            className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+            className="min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 hover:text-red-600 transition-colors"
             aria-label="Delete task"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

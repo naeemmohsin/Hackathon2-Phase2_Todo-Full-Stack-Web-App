@@ -7,35 +7,64 @@ import Button from '../ui/Button';
 import Input from '../ui/Input';
 import ErrorMessage from '../ui/ErrorMessage';
 import { register } from '@/lib/auth';
-import type { ApiError } from '@/lib/types';
+import { authValidation } from '@/lib/auth-client';
 
+/**
+ * RegisterForm - Better Auth integrated sign-up form
+ *
+ * This component uses Better Auth validation patterns while
+ * delegating authentication to the existing FastAPI backend.
+ * JWT tokens are stored in localStorage on successful registration.
+ */
 export default function RegisterForm() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
-  const [fieldErrors, setFieldErrors] = useState<{ password?: string }>({});
+  const [fieldErrors, setFieldErrors] = useState<{
+    email?: string;
+    password?: string;
+    confirmPassword?: string;
+  }>({});
   const [isLoading, setIsLoading] = useState(false);
 
+  /**
+   * Validate form fields using Better Auth validation rules
+   */
   const validateForm = (): boolean => {
-    const errors: { password?: string } = {};
+    const errors: typeof fieldErrors = {};
 
-    if (password.length < 8) {
-      errors.password = 'Password must be at least 8 characters';
+    // Email validation
+    if (!email) {
+      errors.email = authValidation.email.required;
+    } else if (!authValidation.email.pattern.value.test(email)) {
+      errors.email = authValidation.email.pattern.message;
     }
 
+    // Password validation
+    if (!password) {
+      errors.password = authValidation.password.required;
+    } else if (password.length < authValidation.password.minLength.value) {
+      errors.password = authValidation.password.minLength.message;
+    }
+
+    // Confirm password validation
     if (password !== confirmPassword) {
-      errors.password = 'Passwords do not match';
+      errors.confirmPassword = 'Passwords do not match';
     }
 
     setFieldErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
+  /**
+   * Handle form submission - register with backend and store JWT
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setFieldErrors({});
 
     if (!validateForm()) {
       return;
@@ -44,11 +73,26 @@ export default function RegisterForm() {
     setIsLoading(true);
 
     try {
+      // Call backend /auth/register endpoint
+      // JWT token is automatically stored in localStorage by auth.ts
       await register({ email, password });
+
+      // Redirect to dashboard on success
       router.push('/dashboard');
     } catch (err) {
-      const apiError = err as ApiError;
-      setError(apiError.message || 'Registration failed. Please try again.');
+      // Handle specific error cases
+      const errorMessage = err instanceof Error ? err.message : 'Registration failed';
+
+      if (errorMessage.toLowerCase().includes('already registered') ||
+          errorMessage.toLowerCase().includes('already exists')) {
+        setError('An account with this email already exists. Please sign in instead.');
+      } else if (errorMessage.toLowerCase().includes('password')) {
+        setFieldErrors({ password: errorMessage });
+      } else if (errorMessage.toLowerCase().includes('email')) {
+        setFieldErrors({ email: errorMessage });
+      } else {
+        setError(errorMessage || 'Registration failed. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -73,6 +117,7 @@ export default function RegisterForm() {
             placeholder="you@example.com"
             required
             autoComplete="email"
+            error={fieldErrors.email}
           />
 
           <Input
@@ -96,6 +141,7 @@ export default function RegisterForm() {
             placeholder="Confirm your password"
             required
             autoComplete="new-password"
+            error={fieldErrors.confirmPassword}
           />
 
           <Button

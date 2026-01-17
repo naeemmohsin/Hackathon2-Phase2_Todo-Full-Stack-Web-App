@@ -7,26 +7,83 @@ import Button from '../ui/Button';
 import Input from '../ui/Input';
 import ErrorMessage from '../ui/ErrorMessage';
 import { login } from '@/lib/auth';
-import type { ApiError } from '@/lib/types';
+import { authValidation } from '@/lib/auth-client';
 
+/**
+ * LoginForm - Better Auth integrated sign-in form
+ *
+ * This component uses Better Auth validation patterns while
+ * delegating authentication to the existing FastAPI backend.
+ * JWT tokens are stored in localStorage on successful login.
+ */
 export default function LoginForm() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<{
+    email?: string;
+    password?: string;
+  }>({});
   const [isLoading, setIsLoading] = useState(false);
 
+  /**
+   * Validate form fields using Better Auth validation rules
+   */
+  const validateForm = (): boolean => {
+    const errors: typeof fieldErrors = {};
+
+    // Email validation
+    if (!email) {
+      errors.email = authValidation.email.required;
+    } else if (!authValidation.email.pattern.value.test(email)) {
+      errors.email = authValidation.email.pattern.message;
+    }
+
+    // Password validation
+    if (!password) {
+      errors.password = authValidation.password.required;
+    }
+
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  /**
+   * Handle form submission - login with backend and store JWT
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setFieldErrors({});
+
+    if (!validateForm()) {
+      return;
+    }
+
     setIsLoading(true);
 
     try {
+      // Call backend /auth/login endpoint
+      // JWT token is automatically stored in localStorage by auth.ts
       await login({ email, password });
+
+      // Redirect to dashboard on success
       router.push('/dashboard');
     } catch (err) {
-      const apiError = err as ApiError;
-      setError(apiError.message || 'Login failed. Please try again.');
+      // Handle specific error cases
+      const errorMessage = err instanceof Error ? err.message : 'Login failed';
+
+      if (errorMessage.toLowerCase().includes('invalid') ||
+          errorMessage.toLowerCase().includes('incorrect') ||
+          errorMessage.toLowerCase().includes('wrong')) {
+        setError('Invalid email or password. Please try again.');
+      } else if (errorMessage.toLowerCase().includes('not found') ||
+                 errorMessage.toLowerCase().includes('no user')) {
+        setError('No account found with this email. Please sign up first.');
+      } else {
+        setError(errorMessage || 'Login failed. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -51,6 +108,7 @@ export default function LoginForm() {
             placeholder="you@example.com"
             required
             autoComplete="email"
+            error={fieldErrors.email}
           />
 
           <Input
@@ -62,6 +120,7 @@ export default function LoginForm() {
             placeholder="Enter your password"
             required
             autoComplete="current-password"
+            error={fieldErrors.password}
           />
 
           <Button

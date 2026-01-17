@@ -5,7 +5,7 @@ import Button from '../ui/Button';
 import Input from '../ui/Input';
 import ErrorMessage from '../ui/ErrorMessage';
 import { updateTask } from '@/lib/api';
-import type { Task, ApiError } from '@/lib/types';
+import type { Task } from '@/lib/types';
 
 interface EditTaskModalProps {
   task: Task | null;
@@ -56,8 +56,8 @@ export default function EditTaskModal({
       onTaskUpdated(updatedTask);
       onClose();
     } catch (err) {
-      const apiError = err as ApiError;
-      setError(apiError.message || 'Failed to update task. Please try again.');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update task. Please try again.';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
